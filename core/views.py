@@ -13,7 +13,7 @@ from django.urls import reverse_lazy
 
 # 1. Configure the API (Best practice: use Environment Variables)
 # For local testing, you can put the string here, but for Heroku use os.environ
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyApmiL5_jph_lHGMGy_QzZ32voIacNW69s")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyA0aH_xxpNGGib8hnkzP-xe-FkeV2BSyrs")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Fallback list in case AI fails
