@@ -6,7 +6,6 @@ class Game(models.Model):
     spy_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
-    word_description = models.TextField(blank=True, null=True)
     
     def __str__(self):
         return f"Game Word: {self.current_word}"
