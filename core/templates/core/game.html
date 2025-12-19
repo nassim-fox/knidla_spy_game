@@ -23,6 +23,14 @@
             {{ the_word }}
         </div>
 
+        <div style="margin-top: 20px;">
+        <a href="https://www.google.com/search?q={{ the_word }}" 
+            target="_blank" 
+            style="font-size: 0.9em; color: #666; text-decoration: underline;">
+            🔍 Qu'est-ce que c'est ? (Google)
+        </a>
+        </div>
+
         <form action="{% url 'start_round' %}" method="POST">
             {% csrf_token %}
             <button type="submit" class="btn">Start New Round</button>
