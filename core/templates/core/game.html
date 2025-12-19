@@ -1,65 +1,232 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Spy Game</title>
+    <title>🕵️‍♂️ Spy Game</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #eee; }
-        .card { background: white; padding: 20px; max-width: 400px; margin: 0 auto; border-radius: 10px; }
-        .word { font-size: 2em; padding: 20px; border: 2px dashed #ccc; margin: 20px 0; }
-        .spy { color: red; border-color: red; }
-        .btn { padding: 10px 20px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .refresh { background: gray; text-decoration: none; padding: 10px 20px; color: white; border-radius: 5px; display: inline-block; margin-top: 10px;}
+        /* --- GLOBAL STYLES --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- THE CARD --- */
+        .card {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .settings-link { text-decoration: none; color: #555; transition: 0.2s; }
+        .settings-link:hover { color: #000; }
+
+        h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: #444; }
+
+        /* --- THE WORD BOX --- */
+        .word-box {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .word-text {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2c3e50;
+            word-break: break-word;
+        }
+
+        /* Spy Style */
+        .spy-mode {
+            background: #fff5f5;
+            border-color: #ffadad;
+        }
+        .spy-text { color: #e74c3c; }
+
+        /* --- GOOGLE LINK --- */
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #4285f4;
+            text-decoration: none;
+            background: #eef3fc;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+        .google-btn:hover { background: #dce7fa; }
+
+        /* --- ACTION BUTTONS --- */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-main {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .btn-main:active { transform: scale(0.98); }
+
+        .btn-refresh {
+            background: transparent;
+            color: #999;
+            border: 2px solid #eee;
+            padding: 10px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+        }
+        .btn-refresh:hover { background: #f9f9f9; color: #666; }
+
+        .logout-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #ccc;
+            font-size: 0.8rem;
+            text-decoration: none;
+        }
+
+        /* --- LOADING OVERLAY --- */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loading-msg { font-family: monospace; letter-spacing: 2px; color: #00ff88; }
+
     </style>
 </head>
 <body>
-    
-    <a href="{% url 'settings' %}">⚙️ Game Settings</a>
 
-    <div class="card">
-        <h2>Hi, {{ request.user.username }}</h2>
-        
-        <div class="word {% if is_spy %}spy{% endif %}">
-            {{ the_word }}
+    <div style="width: 100%; max-width: 400px; display: flex; justify-content: flex-end;">
+        <a href="{% url 'settings' %}" class="settings-link">⚙️ Config</a>
+    </div>
+
+    <div class="card animate__animated animate__fadeInUp">
+        <div class="header-row">
+            <span>👤 {{ request.user.username }}</span>
+            <span style="font-size: 0.8rem; background: #eee; padding: 2px 8px; border-radius: 10px;">
+                {% if game.is_active %}🟢 En cours{% else %}🔴 Pause{% endif %}
+            </span>
         </div>
 
-        <div style="margin-top: 20px;">
-        <a href="https://www.google.com/search?q={{ the_word }}" 
-            target="_blank" 
-            style="font-size: 0.9em; color: #666; text-decoration: underline;">
-            🔍 Qu'est-ce que c'est ? (Google)
-        </a>
+        <div class="word-box {% if is_spy %}spy-mode{% endif %}">
+            
+            <div class="word-text {% if is_spy %}spy-text{% endif %}">
+                {{ the_word }}
+            </div>
+
+            {% if not is_spy and game.is_active and the_word != 'Waiting for round to start' %}
+                <a href="https://www.google.com/search?q={{ the_word }}" 
+                   target="_blank" 
+                   class="google-btn">
+                   🔍 C'est quoi ?
+                </a>
+            {% endif %}
         </div>
 
-        <form action="{% url 'start_round' %}" method="POST">
-            {% csrf_token %}
-            <button type="submit" class="btn">Start New Round</button>
-        </form>
+        <div class="actions">
+            <form action="{% url 'start_round' %}" method="POST" id="startForm">
+                {% csrf_token %}
+                <button type="submit" class="btn-main">
+                    🎲 Start New Round
+                </button>
+            </form>
 
-        <br>
-        <a href="" class="refresh">Refresh Page</a>
-        <br><br>
-        <a href="{% url 'logout' %}">Logout</a>
+            <a href="" class="btn-refresh">🔄 Refresh Page</a>
+        </div>
+
+        <a href="{% url 'logout' %}" class="logout-link">Log out</a>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-msg">INTERCEPTING DATA...</div>
     </div>
 
     <script>
-    
-    let localTimestamp = "{{ game.updated_at|date:'c' }}"; 
+        // 1. Loading Screen Logic
+        document.getElementById('startForm').addEventListener('submit', function() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        });
 
-    function checkGameStatus() {
-        fetch("{% url 'game_status' %}")
-            .then(response => response.json())
-            .then(data => {
-                if (data.last_updated && localTimestamp && data.last_updated !== localTimestamp) {
-                    console.log("New round started! Refreshing...");
-                    window.location.reload();
-                }
-            })
-            .catch(error => console.error('Error polling:', error));
-    }
+        // 2. Auto-Polling Logic
+        let localTimestamp = "{{ game.updated_at|date:'c' }}"; 
 
-    setInterval(checkGameStatus, 2000);
-</script>
+        function checkGameStatus() {
+            fetch("{% url 'game_status' %}")
+                .then(response => response.json())
+                .then(data => {
+                    // Check if server time is different from our page load time
+                    if (data.last_updated && localTimestamp && data.last_updated !== localTimestamp) {
+                        console.log("New round detected!");
+                        window.location.reload();
+                    }
+                })
+                .catch(error => console.error('Silent Poll Error:', error));
+        }
+
+        // Check every 2.5 seconds
+        setInterval(checkGameStatus, 2500);
+    </script>
 
 </body>
 </html>
