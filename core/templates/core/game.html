@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spy Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #eee; }
+        .card { background: white; padding: 20px; max-width: 400px; margin: 0 auto; border-radius: 10px; }
+        .word { font-size: 2em; padding: 20px; border: 2px dashed #ccc; margin: 20px 0; }
+        .spy { color: red; border-color: red; }
+        .btn { padding: 10px 20px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .refresh { background: gray; text-decoration: none; padding: 10px 20px; color: white; border-radius: 5px; display: inline-block; margin-top: 10px;}
+    </style>
+</head>
+<body>
+    
+    <a href="{% url 'settings' %}">⚙️ Game Settings</a>
+
+    <div class="card">
+        <h2>Hi, {{ request.user.username }}</h2>
+        
+        <div class="word {% if is_spy %}spy{% endif %}">
+            {{ the_word }}
+        </div>
+
+        <form action="{% url 'start_round' %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn">Start New Round</button>
+        </form>
+
+        <br>
+        <a href="" class="refresh">Refresh Page</a>
+        <br><br>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <script>
+    
+    let localTimestamp = "{{ game.updated_at|date:'c' }}"; 
+
+    function checkGameStatus() {
+        fetch("{% url 'game_status' %}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.last_updated && localTimestamp && data.last_updated !== localTimestamp) {
+                    console.log("New round started! Refreshing...");
+                    window.location.reload();
+                }
+            })
+            .catch(error => console.error('Error polling:', error));
+    }
+
+    setInterval(checkGameStatus, 2000);
+</script>
+
+</body>
+</html>
