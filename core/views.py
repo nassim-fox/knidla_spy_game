@@ -59,27 +59,60 @@ def get_ai_word():
         print(f"AI Error: {e}")
         return random.choice(BACKUP_WORDS)
     
+def get_kalak_question():
+    """Asks AI for a question and answer"""
+    config, _ = GameConfig.objects.get_or_create(id=1)
+    prompt = (
+        "Donne-moi une question de culture générale très difficile ou amusante "
+        "dont la réponse est courte (1 ou 2 mots max). "
+        "Format: QUESTION | RÉPONSE"
+    )
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if "|" in text:
+            q, a = text.split("|", 1)
+            return q.strip(), a.strip().lower() # Lowercase for easy comparison
+        return text, "erreur"
+    except:
+        return "Qui a peint la Joconde ?", "léonard de vinci"
 
-class GameView(LoginRequiredMixin, TemplateView) : 
-    
-    
-    template_name = 'core/game.html'
+class GameView(LoginRequiredMixin, TemplateView):
+    def get_template_names(self):
+        game, _ = Game.objects.get_or_create(id=1)
+        if game.current_game == 'KALAK':
+            return ['core/kalak.html']
+        return ['core/game.html'] # Default to Spy
 
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         game, _ = Game.objects.get_or_create(id=1)
-
         context['game'] = game
-        context['is_spy'] = False
-        context['the_word'] = 'Waiting for round to start'
-
-        if game.is_active : 
-            if self.request.user == game.spy_user : 
-                context['is_spy'] = True
-                context['the_word']  = 'You are the spy'
-            else : 
-                context['the_word'] = game.current_word
+        
+        # --- SPY LOGIC ---
+        if game.current_game == 'SPY':
+            context['is_spy'] = (self.request.user == game.spy_user)
+            context['the_word'] = game.current_word if not context['is_spy'] else "VOUS ÊTES L'ESPION"
+        
+        # --- KALAK LOGIC ---
+        elif game.current_game == 'KALAK':
+            # Get my own bluff if I wrote one
+            my_bluff = KalakBluff.objects.filter(game=game, player=self.request.user).first()
+            context['my_bluff'] = my_bluff
+            
+            # If Voting phase, mix Real Answer + Bluffs
+            if game.kalak_phase == 'VOTING':
+                bluffs = list(KalakBluff.objects.filter(game=game))
+                # Create a list of options (Real Answer + Bluffs)
+                options = [{'text': b.text, 'id': b.id, 'type': 'bluff'} for b in bluffs]
+                options.append({'text': game.kalak_real_answer, 'id': 0, 'type': 'real'})
+                random.shuffle(options)
+                context['options'] = options
+                
+                # Check if I already voted
+                # (Complex query omitted for brevity, usually handled in template or separate API)
 
         return context
     

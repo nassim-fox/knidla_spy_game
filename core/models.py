@@ -2,15 +2,25 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Game(models.Model):
-    current_word = models.CharField(max_length=100, blank=True)
-    spy_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    # GLOBAL SETTINGS 
+    GAME_TYPES = [('SPY', 'Spy Game'), ('KALAK', 'Kalak')]
+    current_game = models.CharField(max_length=10, choices=GAME_TYPES, default='SPY')
     is_active = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def __str__(self):
-        return f"Game Word: {self.current_word}"
-    
+    # Knidla SPY GAME DATA 
+    current_word = models.CharField(max_length=100, blank=True)
+    spy_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='spy_games')
+    # (confirmation logic for both games)
+    is_voting = models.BooleanField(default=False)
+    confirmed_players = models.ManyToManyField(User, related_name='confirmed_games', blank=True)
 
+    # KALAK DATA 
+    kalak_question = models.TextField(blank=True)
+    kalak_real_answer = models.CharField(max_length=200, blank=True)
+    
+    # Phases: 'WRITING' (Players write lies) -> 'VOTING' (Pick answer) -> 'RESULTS' (Show points)
+    kalak_phase = models.CharField(max_length=20, default='WRITING')
 
 class GameConfig(models.Model):
     prompt_template = models.TextField(
@@ -32,8 +42,34 @@ class GameConfig(models.Model):
         help_text="Put each category on a new line."
     )
 
+    kalak_prompt = models.TextField(default="Donne-moi une question de culture générale obscure et sa réponse.")
+
+
     def get_category_list(self):
         return [line.strip() for line in self.categories.split('\n') if line.strip()]
 
     def __str__(self):
         return "Game Configuration"
+
+        
+
+class PlayerScore(models.Model):
+    """Tracks points for a specific player"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    points = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.points}"
+
+
+class KalakBluff(models.Model):
+    """A fake answer written by a player"""
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    player = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200)
+    
+    # Who voted for this lie?
+    voters = models.ManyToManyField(User, related_name='voted_bluffs', blank=True)
+
+    def __str__(self):
+        return f"{self.player.username}: {self.text}"
