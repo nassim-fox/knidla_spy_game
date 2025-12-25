@@ -20,7 +20,7 @@ class Game(models.Model):
     kalak_real_answer = models.CharField(max_length=200, blank=True)
     kalak_round = models.IntegerField(default=0)
     round_players = models.ManyToManyField(User, related_name='finished_step', blank=True)
-    
+
     # Phases: 'WRITING' (Players write lies) -> 'VOTING' (Pick answer) -> 'RESULTS' (Show points)
     kalak_phase = models.CharField(max_length=20, default='WRITING')
 
@@ -75,3 +75,26 @@ class KalakBluff(models.Model):
 
     def __str__(self):
         return f"{self.player.username}: {self.text}"
+    
+
+class KalakConfig(models.Model):
+
+    system_prompt = models.TextField(
+        default=(
+            "Donne-moi UNE question de culture générale très surprenante sur le thème : {theme}. "
+            "La réponse doit être courte (1 à 4 mots max). "
+            "Réponds UNIQUEMENT avec ce format : QUESTION|RÉPONSE"
+        ),
+        help_text="Use {theme} where you want the random category to appear."
+    )
+    
+    categories = models.TextField(
+        default="les animaux étranges, l'histoire, l'espace, le corps humain, les pirates, le cinéma"
+    )
+
+    def get_categories_list(self):
+        return [x.strip() for x in self.categories.split(',') if x.strip()]
+
+    def __str__(self):
+        return "Kalak Configuration"
+    

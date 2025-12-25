@@ -1,7 +1,7 @@
 from django.shortcuts import redirect, render
 from django.views.generic import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Game, GameConfig, KalakBluff, PlayerScore, User
+from .models import Game, GameConfig, KalakBluff, PlayerScore, User, KalakConfig
 import random
 from django.http import JsonResponse
 import google.generativeai as genai
@@ -67,14 +67,17 @@ def get_kalak_question():
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # 1. THE STRICT PROMPT
-        prompt = (
-            "Donne-moi UNE SEULE question de culture générale insolite. "
-            "La réponse doit être courte (1 à 3 mots). "
-            "Réponds UNIQUEMENT avec ce format : QUESTION|RÉPONSE "
-            "Ne mets pas de numéros, pas de liste, pas d'intro."
-        )
+       
+        config, _ = KalakConfig.objects.get_or_create(id=1)
         
+        themes = config.get_categories_list()
+        if not themes:
+            themes = ["General Knowledge"] # Fallback if list is empty
+        
+        selected_theme = random.choice(themes)
+        
+        prompt = config.system_prompt.replace("{theme}", selected_theme)
+    
         response = model.generate_content(prompt)
         text = response.text.strip()
         print(f"AI Raw: {text}") 
@@ -337,3 +340,19 @@ class HomeView(LoginRequiredMixin, TemplateView):
         game, _ = Game.objects.get_or_create(id=1)
         context['current_game'] = game.current_game
         return context
+    
+
+class KalakConfigView(LoginRequiredMixin, View):
+    def get(self, request):
+        config, _ = KalakConfig.objects.get_or_create(id=1)
+        return render(request, 'core/kalak_config.html', {'config': config})
+
+    def post(self, request):
+        config, _ = KalakConfig.objects.get_or_create(id=1)
+        
+        config.system_prompt = request.POST.get('system_prompt')
+        config.categories = request.POST.get('categories')
+        config.save()
+        
+        messages.success(request, " Configuration Saved!")
+        return redirect('kalak_config')
