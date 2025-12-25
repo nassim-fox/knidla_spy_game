@@ -14,7 +14,7 @@ from django.contrib import messages
 
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "apikey")
-genai.configure(api_key='AIzaSyBtnQNnoTiI8zrTEuBSR1qxJwESVIMutJA')
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Fallback list in case AI fails
 BACKUP_WORDS = [
@@ -311,7 +311,7 @@ class VoteKalakView(LoginRequiredMixin, View):
             game.round_players.clear() 
             game.save()
             
-            
+
         user_score.save()
         return redirect('game')
     
