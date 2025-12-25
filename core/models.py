@@ -18,6 +18,8 @@ class Game(models.Model):
     # KALAK DATA 
     kalak_question = models.TextField(blank=True)
     kalak_real_answer = models.CharField(max_length=200, blank=True)
+    kalak_round = models.IntegerField(default=0)
+    round_players = models.ManyToManyField(User, related_name='finished_step', blank=True)
     
     # Phases: 'WRITING' (Players write lies) -> 'VOTING' (Pick answer) -> 'RESULTS' (Show points)
     kalak_phase = models.CharField(max_length=20, default='WRITING')

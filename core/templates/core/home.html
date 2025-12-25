@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Arcade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 20px; }
+        h1 { margin-bottom: 40px; }
+        
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        
+        .game-card {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 300px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .game-card:hover { transform: translateY(-5px); border-color: #e94560; }
+        
+        .icon { font-size: 3em; margin-bottom: 10px; display: block; }
+        .title { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: #e94560; }
+        .desc { font-size: 0.9em; color: #ccc; margin-bottom: 20px; }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-spy { background: #e94560; color: white; }
+        .btn-kalak { background: #f1c40f; color: #333; }
+        
+        /* Show current status */
+        .active-badge {
+            background: #2ecc71; color: white; padding: 2px 8px; 
+            border-radius: 4px; font-size: 0.7em; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 Choose Your Game</h1>
+
+    <div class="container">
+        
+        <div class="game-card" onclick="document.getElementById('form-spy').submit()">
+            <span class="icon">🕵️‍♂️</span>
+            <div class="title">Spy Game</div>
+            <div class="desc">Find the intruder who doesn't know the secret word.</div>
+            
+            {% if current_game == 'SPY' %}
+                <span class="active-badge">Currently Active</span>
+            {% endif %}
+
+            <form id="form-spy" action="{% url 'switch_game' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="game_type" value="SPY">
+                <button type="submit" class="btn-spy">Play Spy</button>
+            </form>
+        </div>
+
+        <div class="game-card" onclick="document.getElementById('form-kalak').submit()">
+            <span class="icon">🤥</span>
+            <div class="title">Kalak</div>
+            <div class="desc">Invent fake answers to trivia questions and fool your friends.</div>
+
+            {% if current_game == 'KALAK' %}
+                <span class="active-badge">Currently Active</span>
+            {% endif %}
+
+            <form id="form-kalak" action="{% url 'switch_game' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="game_type" value="KALAK">
+                <button type="submit" class="btn-kalak">Play Kalak</button>
+            </form>
+        </div>
+
+    </div>
+
+    <br><br>
+    <a href="{% url 'game' %}" style="color: #666;">Jump to Active Game >></a>
+
+</body>
+</html>
