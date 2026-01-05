@@ -14,6 +14,44 @@
         .btn:hover { background: #d35400; transform: translateY(-2px); }
         .btn-vote { background: #3498db; margin-bottom: 10px; font-weight: bold; }
         .btn-vote:hover { background: #2980b9; }
+       
+        .header-stats { display: flex; justify-content: space-between; max-width: 500px; margin: 0 auto 15px auto; align-items: center; }
+        .round-badge { background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
+        .player-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 10px; 
+            max-width: 540px; 
+            margin: 0 auto 20px auto; 
+        }
+        .player-chip {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+        .player-chip.is-me { border-color: #f1c40f; background: rgba(241, 196, 15, 0.2); }
+        .player-chip.is-ready { border-color: #2ecc71; background: rgba(46, 204, 113, 0.2); }
+        .score-pill { 
+            background: rgba(0,0,0,0.3); 
+            padding: 2px 6px; 
+            border-radius: 10px; 
+            margin-left: 8px; 
+            font-size: 0.8em; 
+        }
+        .status-icon { margin-left: 5px; font-size: 0.8em; }
+
+        .wait-box { padding: 30px; background: #eef2f3; color: #7f8c8d; border-radius: 10px; border: 2px dashed #bdc3c7; }
+        .msg-box { padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+        .msg-error { background: #e74c3c; color: white; }
+        .msg-warning { background: #f39c12; color: white; }
+        .big-score { font-size: 2em; color: #f1c40f; text-shadow: 1px 1px 0 #000; margin: 10px 0; }
+        
         .score-board { font-size: 1.2em; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.2); }
         .wait-box { padding: 30px; background: #eef2f3; color: #7f8c8d; border-radius: 10px; border: 2px dashed #bdc3c7; }
         .msg-box { padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
@@ -22,12 +60,78 @@
         
         /* New Result Styles */
         .big-score { font-size: 2em; color: #f1c40f; text-shadow: 1px 1px 0 #000; margin: 10px 0; }
+
+        .avatar-img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            object-fit: cover; /* Prevents stretching */
+            background: url('https://i.gifer.com/ZKZg.gif') center/contain no-repeat;
+        }
+
+        .profile-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .profile-section input {
+            background: #34495e;
+            border: 1px solid #455a64;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            width: 60%;
+        }
+
+
     </style>
 </head>
 <body>
 
-    <div class="score-board">
-        🔄 Round: {{ round_num }}/20
+    <div class="header-stats">
+    <div class="round-badge">🔄 Round: {{ round_num }}/20</div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="{% url 'home' %}" style="text-decoration: none; background: rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 5px; font-size: 0.9em;">
+            🏠 Home
+        </a>
+
+        <a href="{% url 'kalak_config' %}" style="text-decoration: none; background: #34495e; color: #f1c40f; border: 1px solid #f1c40f; padding: 8px 15px; border-radius: 5px; font-size: 0.9em; font-weight: bold;">
+            ⚙️ Config
+        </a>
+    </div>
+
+
+
+    <div class="player-list">
+    {% for player_score in leaderboard %}
+        <div class="player-chip 
+            {% if player_score.user == request.user %}is-me{% endif %}
+            {% if player_score.user.id in ready_player_ids and game.kalak_phase != 'RESULTS' %}is-ready{% endif %}
+        ">
+            {% if player_score.avatar_url %}
+                <img src="{{ player_score.avatar_url }}" class="avatar-img" alt="avatar">
+            {% else %}
+                <span style="margin-right: 5px;">👤</span> {% endif %}
+
+            {{ player_score.user.username|truncatechars:10 }}
+            
+            <span class="score-pill">{{ player_score.points }} pts</span>
+
+            {% if game.kalak_phase != 'RESULTS' and game.kalak_phase != 'GAME_OVER' %}
+                {% if player_score.user.id in ready_player_ids %}
+                    <span class="status-icon">✅</span>
+                {% else %}
+                    <span class="status-icon">⏳</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endfor %}
     </div>
 
     <div class="card animate__animated animate__fadeInUp">
@@ -68,6 +172,14 @@
         {% else %}
 
             {% if game.kalak_phase == 'WRITING' %}
+
+                {% if game.kalak_image_url %}
+                <div style="margin: 15px 0;">
+                    <img src="{{ game.kalak_image_url }}" 
+                        style="max-width: 100%; border-radius: 10px; border: 2px solid #f1c40f; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                </div>
+                {% endif %}
+
                 <div class="question">{{ game.kalak_question }}</div>
 
                 {% if has_acted %}
@@ -132,7 +244,14 @@
                             <div style="border-bottom:1px solid #eee; padding:10px 5px;">
                                 <span style="font-size:1.1em;">🤥 <strong>{{ bluff.text }}</strong></span>
                                 <br>
-                                <span style="font-size:0.8em; color:#7f8c8d;">by {{ bluff.player.username }}</span>
+
+                                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                                    {% if bluff.player.playerscore.avatar_url %}
+                                        <img src="{{ bluff.player.playerscore.avatar_url }}" class="avatar-img" style="width: 18px; height: 18px; margin-right: 0;">
+                                    {% endif %}
+                                    <span style="font-size:0.8em; color:#7f8c8d;">by {{ bluff.player.username }}</span>
+                                </div>
+                                
                                 {% if bluff.voters.all %}
                                     <div style="margin-top:5px; background:#ffecec; color:#c0392b; padding:5px; border-radius:5px; font-size:0.9em;">
                                         Fooled: <strong>{% for v in bluff.voters.all %}{{ v.username }}, {% endfor %}</strong>
@@ -153,6 +272,50 @@
 
         {% endif %} 
     </div>
+
+    <div class="profile-section" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; margin-top: 40px;">
+    <h3 style="margin-top:0; color: #f1c40f;">🎭 Character Settings</h3>
+    
+    
+
+
+    <form action="{% url 'update_avatar' %}" method="POST">
+        {% csrf_token %}
+        
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: center; margin-bottom: 20px;">
+            <img src="{{ request.user.playerscore.avatar_url }}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #e67e22; background: #2c3e50;">
+            <div style="text-align: left;">
+                <label style="font-size: 0.8em; color: #bdc3c7;">Avatar Name/Description:</label><br>
+                <input type="text" name="new_desc" class="input-box" style="width: 200px; padding: 8px; margin-top:5px;" placeholder="e.g. Shadow Ninja" required>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 15px; display: flex; justify-content: center; gap: 15px; font-size: 0.9em;">
+            <label>
+                    <input type="radio" name="method" value="dicebear" checked onclick="document.getElementById('style-select').style.display='inline-block'"> 
+                    ⚡ Instant (DiceBear)
+                </label>
+                <label title="Takes 3-5 seconds to generate">
+                    <input type="radio" name="method" value="ai" onclick="document.getElementById('style-select').style.display='none'"> 
+                    ✨ AI Art (Beta)
+                </label>
+            </div>
+
+            <div id="style-select" style="margin-bottom: 15px;">
+                <label style="font-size: 0.8em; color: #bdc3c7;">Choose Style:</label>
+                <select name="style" style="padding: 5px; border-radius: 5px; background: #34495e; color: white; border: 1px solid #455a64;">
+                    <option value="pixel-art">Retro Pixel</option>
+                    <option value="bottts">Robots</option>
+                    <option value="avataaars">Human</option>
+                    <option value="lorelei">Anime</option>
+                    <option value="identicon">Geometric</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" style="width: auto; padding: 10px 30px; margin-top: 5px;">Save New Look</button>
+        </form>
+    </div>
+
 
     <form action="{% url 'switch_game' %}" method="POST" style="margin-top: 50px;">
         {% csrf_token %}

@@ -20,7 +20,8 @@ class Game(models.Model):
     kalak_real_answer = models.CharField(max_length=200, blank=True)
     kalak_round = models.IntegerField(default=0)
     round_players = models.ManyToManyField(User, related_name='finished_step', blank=True)
-
+    kalak_image_url = models.URLField(blank=True, null=True)
+    
     # Phases: 'WRITING' (Players write lies) -> 'VOTING' (Pick answer) -> 'RESULTS' (Show points)
     kalak_phase = models.CharField(max_length=20, default='WRITING')
 
@@ -59,6 +60,7 @@ class PlayerScore(models.Model):
     """Tracks points for a specific player"""
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     points = models.IntegerField(default=0)
+    avatar_url = models.URLField(max_length=500, blank=True, null=True) 
 
     def __str__(self):
         return f"{self.user.username}: {self.points}"

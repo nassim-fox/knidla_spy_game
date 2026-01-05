@@ -84,6 +84,11 @@ def get_kalak_question():
 
         lines = text.split('\n')
         
+        q = "Question par défaut ?"
+        a = "réponse"
+        img = "_"
+
+
         for line in lines:
             clean_line = line.strip()
             
@@ -93,16 +98,20 @@ def get_kalak_question():
                     q = parts[0].replace("Question :", "").strip() 
                     a = parts[1].replace("Réponse :", "").strip().lower()
                     
+                    if len(parts) >= 3:
+                        img = parts[2].strip()
+                
+
                     if q[0].isdigit() and q[1] in ['.', ')']:
                         q = q[2:].strip()
                         
-                    return q, a
+        
+        return q, a, img
 
-        return "Quel est le comble pour un électricien ?", "ne pas être au courant"
 
     except Exception as e:
         print(f" AI Error: {e}")
-        return "Erreur technique", "erreur"
+        return "Erreur technique", "erreur",""
     
 #############################################################################################
 
@@ -121,6 +130,8 @@ class GameView(LoginRequiredMixin, TemplateView) :
         context = super().get_context_data(**kwargs)
         game, _ = Game.objects.get_or_create(id=1)
         
+        context['leaderboard'] = PlayerScore.objects.all().order_by('-points')
+        
         user = self.request.user
         
         context['game'] = game
@@ -137,6 +148,8 @@ class GameView(LoginRequiredMixin, TemplateView) :
             score, _ = PlayerScore.objects.get_or_create(user=user)
             context['my_score'] = score.points
 
+            context['ready_player_ids'] = list(game.round_players.values_list('id', flat=True))
+            
             context['has_acted'] = game.round_players.filter(id=user.id).exists()
             context['round_num'] = game.kalak_round
 
@@ -203,10 +216,11 @@ class StartKalakRoundView(LoginRequiredMixin, View) :
             game.save()
             return redirect('game')
         
-        q, a = get_kalak_question()
+        q, a, img = get_kalak_question()        
         game.kalak_question = q
         game.kalak_real_answer = a 
-
+        game.kalak_image_url = img
+        
         game.is_active = True
 
         game.kalak_round += 1
@@ -356,3 +370,76 @@ class KalakConfigView(LoginRequiredMixin, View):
         
         messages.success(request, " Configuration Saved!")
         return redirect('kalak_config')
+    
+
+
+
+
+
+#########################################################################################
+## users views
+
+from django.views.generic import CreateView
+from django.urls import reverse_lazy
+from .forms import SignUpForm
+import urllib.parse
+from django.contrib.auth import login 
+
+
+class SignUpView(CreateView):
+    form_class = SignUpForm
+    success_url = reverse_lazy('login')
+    template_name = 'registration/signup.html'
+
+    def form_valid(self, form):
+        user = form.save()
+
+        user_description = form.cleaned_data.get('avatar_description')        
+        encoded_prompt = urllib.parse.quote(user_description)
+        avatar_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=300&height=300&nologo=true&seed={user.id}"
+
+        PlayerScore.objects.create(
+            user = user, 
+            points = 0,
+            avatar_url = avatar_url
+        )
+
+        login(self.request, user)
+
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+      
+        print("FORM IS INVALID") 
+        print(form.errors) 
+        return super().form_invalid(form)
+    
+
+
+
+import time
+
+
+
+class UpdateAvatarView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        new_desc = request.POST.get('new_desc')
+        method = request.POST.get('method') # 'dicebear' or 'ai'
+        style = request.POST.get('style')   # 'pixel-art', 'bottts', etc.
+
+        if new_desc:
+            encoded_val = urllib.parse.quote(new_desc)
+            
+            if method == 'ai':
+                # AI Beta (Pollinations)
+                new_url = f"https://image.pollinations.ai/prompt/{encoded_val}?width=300&height=300&nologo=true&seed={time.time()}"
+            else:
+                # DiceBear (Instant)
+                new_url = f"https://api.dicebear.com/7.x/{style}/svg?seed={encoded_val}"
+            
+            # Update the model
+            player_profile = request.user.playerscore
+            player_profile.avatar_url = new_url
+            player_profile.save()
+            
+        return redirect('game')
