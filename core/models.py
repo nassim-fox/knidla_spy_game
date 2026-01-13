@@ -1,7 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
+import random
+import string
+
+
+
+def generate_room_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar_url = models.URLField(max_length=500, blank=True, null=True)
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+        
+
 
 class Game(models.Model):
+
+    # room settings
+    room_code = models.CharField(max_length=6, default=generate_room_code, unique=True)
+    admin = models.ForeignKey(User,on_delete=models.CASCADE,related_name='hosted_games')
+    players = models.ManyToManyField(User,related_name='joined_games',blank=True)
+
     # GLOBAL SETTINGS 
     GAME_TYPES = [('SPY', 'Spy Game'), ('KALAK', 'Kalak')]
     current_game = models.CharField(max_length=10, choices=GAME_TYPES, default='SPY')
@@ -24,6 +47,14 @@ class Game(models.Model):
     
     # Phases: 'WRITING' (Players write lies) -> 'VOTING' (Pick answer) -> 'RESULTS' (Show points)
     kalak_phase = models.CharField(max_length=20, default='WRITING')
+
+    ready_players = models.ManyToManyField(User, related_name='ready_in_games', blank=True)
+    
+    # Add this property so the View stops crashing
+    @property
+    def ready_player_ids(self):
+        return list(self.ready_players.values_list('id', flat=True))
+    
 
 class GameConfig(models.Model):
     prompt_template = models.TextField(
@@ -58,6 +89,7 @@ class GameConfig(models.Model):
 
 class PlayerScore(models.Model):
     """Tracks points for a specific player"""
+    game = models.ForeignKey('Game', on_delete=models.CASCADE, related_name='leaderboard')
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     points = models.IntegerField(default=0)
     avatar_url = models.URLField(max_length=500, blank=True, null=True) 
@@ -93,6 +125,10 @@ class KalakConfig(models.Model):
     categories = models.TextField(
         default="les animaux étranges, l'histoire, l'espace, le corps humain, les pirates, le cinéma"
     )
+
+    model = models.CharField(max_length=100, default='gemini-2.0-flash')    
+    
+    max_rounds = models.IntegerField(default=20)
 
     def get_categories_list(self):
         return [x.strip() for x in self.categories.split(',') if x.strip()]

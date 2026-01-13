@@ -1,7 +1,7 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Game, GameConfig, KalakBluff, PlayerScore, User, KalakConfig
+from .models import Game, GameConfig, KalakBluff, PlayerScore, Profile, User, KalakConfig
 import random
 from django.http import JsonResponse
 import google.generativeai as genai
@@ -13,7 +13,7 @@ from difflib import SequenceMatcher
 from django.contrib import messages
 
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "apikey")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDitd0IfLGc4aUfSrllWm-v8-xchzqprag")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Fallback list in case AI fails
@@ -30,11 +30,37 @@ class ConfigView(LoginRequiredMixin, UpdateView):
     model = GameConfig
     fields = ['prompt_template', 'categories']
     template_name = 'core/config.html'
-    success_url = reverse_lazy('game')
+    success_url = reverse_lazy('play')
 
     def get_object(self):
         obj, created = GameConfig.objects.get_or_create(id=1)
         return obj
+    
+
+#############################################################################################
+
+from django.http import JsonResponse
+
+def game_data_api(request, room_code):
+    game = get_object_or_404(Game, room_code=room_code)
+    
+    # Get leaderboard data
+    leaderboard = []
+    for ps in game.leaderboard.all().select_related('user__profile'):
+        leaderboard.append({
+            'username': ps.user.username,
+            'points': ps.points,
+            'avatar': ps.user.profile.avatar_url,
+            'is_ready': ps.user.id in game.ready_player_ids, # Assuming you have this logic
+            'user_id': ps.user.id
+        })
+        
+    return JsonResponse({
+        'phase': game.kalak_phase,
+        'leaderboard': leaderboard,
+        'last_updated': game.updated_at.isoformat(),
+    })
+
 
 #############################################################################################
 
@@ -65,10 +91,12 @@ def get_ai_word():
 
 def get_kalak_question():
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
         
        
         config, _ = KalakConfig.objects.get_or_create(id=1)
+
+        model = genai.GenerativeModel(config.model)
+        
         
         themes = config.get_categories_list()
         if not themes:
@@ -115,22 +143,147 @@ def get_kalak_question():
     
 #############################################################################################
 
+def get_current_game(request): 
+    
+    code = request.session.get('room_code')
+
+    if not code:
+        return None
+    try :
+        game = Game.objects.get(room_code=code)
+        if request.user not in game.players.all() : 
+            del request.session['room_code']
+            return None
+        return game 
+    except game.DoesNotExist : 
+        return None
+    
+
+#############################################################################################
+
+class CreateRoomView(LoginRequiredMixin, View) : 
+    def post(self,request) : 
+
+        game = Game.objects.create(admin=request.user)
+        game.players.add(request.user)
+        game.save()
+
+        request.session['room_code'] = game.room_code
+        
+        return redirect('lobby')
+    
+class JoinRoomView(LoginRequiredMixin, View) :
+
+    def post(self,request):  
+
+        code = request.POST.get('room_code','').upper().strip()
+
+        try :
+            game = Game.objects.get(room_code=code)
+
+            #if not game.is_active : 
+            game.players.add(request.user)
+            request.session['room_code'] = code
+            #else: 
+            #    messages.error(request,'Game already in progress')
+            #    return redirect('home')
+            
+            PlayerScore.objects.get_or_create(
+                user=request.user, 
+                game=game
+            )
+
+            game.save()
+
+            
+            return redirect('lobby')
+
+            
+                 
+        except Game.DoesNotExist: 
+            messages.error(request,'Room not found')
+            return redirect('home')
+        
+
+class LobbyView(LoginRequiredMixin, TemplateView) : 
+
+    template_name = 'core/lobby.html'
+
+    def get(self,request,*args,**kwargs):
+        game = get_current_game(request)
+        if not game : 
+            return redirect('home')
+
+        if game.is_active : 
+            return redirect('play')
+
+        context = {
+            'game' : game , 
+            'players' : game.players.all(),
+            'is_admin' : request.user == game.admin,
+            'room_url' : request.build_absolute_uri(f"/?join={game.room_code}")
+        }
+
+        return render(request,self.template_name,context)
+    
+class KickPlayerView(LoginRequiredMixin,View) : 
+
+    def post(self,request, player_id) : 
+        game = get_current_game(request)
+        if not game or request.user != game.admin : 
+            return redirect('home')
+        
+        user_to_kick = User.object.get(id=player_id)
+
+        if user_to_kick != game.admin : 
+            game.players.remove(user_to_kick)
+
+        return redirect('lobby')
+
+class LeaveRoomView(LoginRequiredMixin, View):
+    def post(self, request):
+        game = get_current_game(request)
+        if game:
+            game.players.remove(request.user)
+
+            PlayerScore.objects.filter(game=game, user=request.user).delete()
+
+            
+            if game.players.count() == 0:
+                game.delete() 
+            elif game.admin == request.user:
+                game.admin = game.players.first()
+            
+            game.save()
+                
+        if 'room_code' in request.session:
+            del request.session['room_code']
+            
+        return redirect('home')
+
+
 class GameView(LoginRequiredMixin, TemplateView) : 
     
 
-    def get_template_names(self):
-        game, _ = Game.objects.get_or_create(id=1)
-        
-        if game.current_game == 'KALAK':
-            return ['core/kalak.html']
-        
-        return ['core/game.html']
+    def get(self,request,*args,**kwargs): 
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        game, _ = Game.objects.get_or_create(id=1)
+        game = get_current_game(request)
         
-        context['leaderboard'] = PlayerScore.objects.all().order_by('-points')
+        if not game:
+            return redirect('home')
+            
+        if not game.is_active:
+            return redirect('lobby')
+        
+        template_name = 'core/kalak.html' if game.current_game == 'KALAK' else 'core/game.html'
+        
+        context = {
+            'game': game,
+        }
+
+        config, _ = KalakConfig.objects.get_or_create(id=1)        
+        
+        context['leaderboard'] = game.leaderboard.all().order_by('-points')#PlayerScore.objects.all().order_by('-points')
         
         user = self.request.user
         
@@ -145,13 +298,18 @@ class GameView(LoginRequiredMixin, TemplateView) :
 
         elif game.current_game == 'KALAK' :
 
-            score, _ = PlayerScore.objects.get_or_create(user=user)
+            #score, _ = PlayerScore.objects.get_or_create(user=user)
+            
+            score, _ = PlayerScore.objects.get_or_create(user=user, game=game)
+
             context['my_score'] = score.points
 
             context['ready_player_ids'] = list(game.round_players.values_list('id', flat=True))
             
             context['has_acted'] = game.round_players.filter(id=user.id).exists()
             context['round_num'] = game.kalak_round
+            context['max_rounds'] = config.max_rounds
+            
 
             # if wrote bluff
             context['my_bluff'] = KalakBluff.objects.filter(game=game,player=user).first
@@ -171,13 +329,12 @@ class GameView(LoginRequiredMixin, TemplateView) :
 
 
 
-        return context
+        return render(request, template_name, context)    
     
-
 
 class SwitchGameView(LoginRequiredMixin, View):
     def post(self, request):
-        game, _ = Game.objects.get_or_create(id=1)
+        game = get_current_game(self.request)
         target = request.POST.get('game_type')
         
         if target in ['SPY', 'KALAK']:
@@ -204,17 +361,23 @@ class SwitchGameView(LoginRequiredMixin, View):
 
             game.save()
             
-        return redirect('game')
+        return redirect('play')
         
 class StartKalakRoundView(LoginRequiredMixin, View) : 
 
     def post(self,request,*args,**kwargs) : 
-        game, _ = Game.objects.get_or_create(id=1)
-
-        if game.kalak_round >= 20:
+        game = get_current_game(request)
+        if not game or request.user != game.admin:
+            return redirect('home')
+        
+        config = KalakConfig.objects.get(id=1)
+        
+        game.current_game = 'KALAK'
+        
+        if game.kalak_round >= config.max_rounds:
             game.kalak_phase = 'GAME_OVER'
             game.save()
-            return redirect('game')
+            return redirect('play')
         
         q, a, img = get_kalak_question()        
         game.kalak_question = q
@@ -232,12 +395,18 @@ class StartKalakRoundView(LoginRequiredMixin, View) :
 
         game.save()
 
-        return redirect('game')
+        return redirect('play')
     
 class StartRoundView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        game, _ = Game.objects.get_or_create(id=1)
         
+        game = get_current_game(request)
+        
+        if not game:
+            return redirect('home')
+       
+        game.current_game = 'SPY'
+    
         new_word = get_ai_word()
         
         new_word = new_word.replace(".", "")
@@ -251,12 +420,12 @@ class StartRoundView(LoginRequiredMixin, View):
             game.is_active = True
             game.save()
             
-        return redirect('game')
+        return redirect('play')
 
 class GameStatusView(View):
     def get(self, request, *args, **kwargs):
-        game, _ = Game.objects.get_or_create(id=1)
-        
+        game = get_current_game(self.request)        
+
         return JsonResponse({
             'last_updated': game.updated_at.isoformat()
         })
@@ -264,7 +433,8 @@ class GameStatusView(View):
 
 class SubmitBluffView(LoginRequiredMixin, View): 
     def post(self, request) : 
-        game = Game.objects.get(id = 1)
+        game = get_current_game(self.request)
+
         text = request.POST.get('bluff_text','').strip().lower()
 
 
@@ -272,7 +442,7 @@ class SubmitBluffView(LoginRequiredMixin, View):
         similarity = SequenceMatcher(None, text, game.kalak_real_answer).ratio()
         if similarity > 0.7 :
             messages.error(request, "Too close to the real answer! Be more creative.")
-            return redirect('game')
+            return redirect('play')
         
         KalakBluff.objects.create(game=game, player= request.user, text= text)
 
@@ -288,22 +458,23 @@ class SubmitBluffView(LoginRequiredMixin, View):
             game.round_players.clear() # reset for next phase
             game.save()
 
-        return redirect('game')
+        return redirect('play')
     
 
 class VoteKalakView(LoginRequiredMixin, View): 
     def post(self, request) : 
 
-        game  = Game.objects.get(id=1)
+        game = get_current_game(self.request)
         choice_id = int(request.POST.get('choice_id'))
 
         if game.round_players.filter(id=request.user.id).exists():
             messages.warning(request, "You cannot change your vote!")
-            return redirect('game')
+            return redirect('play')
         
         
-        user_score , _ = PlayerScore.objects.get_or_create(user=request.user)
-
+        #user_score , _ = PlayerScore.objects.get_or_create(user=request.user)
+        user_score, _ = PlayerScore.objects.get_or_create(user=request.user, game=game)
+        
         if choice_id == 0 : 
             user_score.points += 2 
         else : 
@@ -312,7 +483,8 @@ class VoteKalakView(LoginRequiredMixin, View):
 
             #author of bluff get points
 
-            liar_score , _ = PlayerScore.objects.get_or_create(user=bluff.player)
+            #liar_score , _ = PlayerScore.objects.get_or_create(user=bluff.player)
+            liar_score, _ = PlayerScore.objects.get_or_create(user=bluff.player, game=game)
             liar_score.points += 1 
             liar_score.save()
             
@@ -330,7 +502,7 @@ class VoteKalakView(LoginRequiredMixin, View):
             
 
         user_score.save()
-        return redirect('game')
+        return redirect('play')
     
 
 class AdvancePhaseView(LoginRequiredMixin,View) : 
@@ -343,18 +515,18 @@ class AdvancePhaseView(LoginRequiredMixin,View) :
         elif game.kalak_phase == 'VOTING' : 
             game.kalak_phase = 'RESULTS'
         game.save()
-        return redirect('game')
+        return redirect('play')
     
 class HomeView(LoginRequiredMixin, TemplateView):
     template_name = 'core/home.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        game, _ = Game.objects.get_or_create(id=1)
-        context['current_game'] = game.current_game
-        return context
-    
+    def get(self, request, *args, **kwargs):
+        if 'room_code' in request.session:
+            game = get_current_game(request)
+            if game:
+                return redirect('lobby')
+            
+        return super().get(request, *args, **kwargs)
 
 class KalakConfigView(LoginRequiredMixin, View):
     def get(self, request):
@@ -366,10 +538,12 @@ class KalakConfigView(LoginRequiredMixin, View):
         
         config.system_prompt = request.POST.get('system_prompt')
         config.categories = request.POST.get('categories')
+        config.model = request.POST.get('model_choice')
+        config.max_rounds = request.POST.get('max_rounds')
         config.save()
         
         messages.success(request, " Configuration Saved!")
-        return redirect('kalak_config')
+        return redirect('play')
     
 
 
@@ -398,11 +572,7 @@ class SignUpView(CreateView):
         encoded_prompt = urllib.parse.quote(user_description)
         avatar_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=300&height=300&nologo=true&seed={user.id}"
 
-        PlayerScore.objects.create(
-            user = user, 
-            points = 0,
-            avatar_url = avatar_url
-        )
+        Profile.objects.create(user=user, avatar_url=avatar_url)
 
         login(self.request, user)
 
@@ -438,8 +608,8 @@ class UpdateAvatarView(LoginRequiredMixin, View):
                 new_url = f"https://api.dicebear.com/7.x/{style}/svg?seed={encoded_val}"
             
             # Update the model
-            player_profile = request.user.playerscore
-            player_profile.avatar_url = new_url
-            player_profile.save()
+            profile, created = Profile.objects.get_or_create(user=request.user)            
+            profile.avatar_url = new_url
+            profile.save()
             
-        return redirect('game')
+        return redirect('play')

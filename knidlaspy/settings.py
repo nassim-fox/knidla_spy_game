@@ -21,7 +21,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-key')
 # Local: True | Render: False (unless you set it otherwise)
 DEBUG = not ON_RENDER
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','.trycloudflare.com']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.trycloudflare.com',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -123,5 +129,5 @@ if ON_RENDER:
     # Enable WhiteNoise compression
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-LOGIN_REDIRECT_URL = 'game'
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'

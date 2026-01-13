@@ -5,150 +5,255 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        body { font-family: sans-serif; background: #2c3e50; color: white; text-align: center; padding: 20px; }
-        .card { background: white; color: #333; padding: 20px; border-radius: 15px; max-width: 500px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .question { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; color: #2c3e50; padding: 10px; background: #ecf0f1; border-radius: 8px; }
-        .input-box { width: 80%; padding: 15px; font-size: 1.1em; border: 2px solid #ccc; border-radius: 8px; outline: none; transition: 0.3s; }
-        .input-box:focus { border-color: #e67e22; }
-        .btn { padding: 15px; background: #e67e22; color: white; border:none; border-radius: 8px; width: 100%; font-size: 1.1em; margin-top: 15px; cursor: pointer; transition: 0.2s; }
-        .btn:hover { background: #d35400; transform: translateY(-2px); }
-        .btn-vote { background: #3498db; margin-bottom: 10px; font-weight: bold; }
-        .btn-vote:hover { background: #2980b9; }
-       
-        .header-stats { display: flex; justify-content: space-between; max-width: 500px; margin: 0 auto 15px auto; align-items: center; }
-        .round-badge { background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); }
-        .player-list { 
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: 1px solid rgba(255, 255, 255, 0.1);
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --gold: #f59e0b;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg-gradient); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- Header & Nav --- */
+        .top-bar { 
+            width: 100%; 
+            max-width: 600px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+        .nav-btn { 
+            text-decoration: none; 
+            color: var(--text-muted); 
+            font-size: 0.9em; 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            transition: 0.2s; 
+            background: rgba(0,0,0,0.2);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .admin-btn { border: 1px solid var(--accent); color: var(--accent); }
+
+        .round-badge { 
+            background: rgba(56, 189, 248, 0.1); 
+            color: var(--accent); 
+            padding: 6px 16px; 
+            border-radius: 99px; 
+            font-weight: 600; 
+            font-size: 0.9em; 
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        /* --- Main Game Card --- */
+        .game-card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            border: var(--card-border); 
+            padding: 30px; 
+            border-radius: 24px; 
+            width: 100%; 
+            max-width: 550px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Question & Inputs --- */
+        .question-box { 
+            font-size: 1.4em; 
+            font-weight: 700; 
+            color: white; 
+            margin: 20px 0; 
+            line-height: 1.4;
+        }
+        
+        .input-box { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 16px; 
+            font-size: 1.1em; 
+            background: rgba(0,0,0,0.3); 
+            border: 2px solid rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            color: white; 
+            outline: none; 
+            transition: 0.3s;
+            text-align: center;
+        }
+        .input-box:focus { border-color: var(--accent); background: rgba(0,0,0,0.5); }
+
+        /* --- Buttons --- */
+        .btn { 
+            display: block; 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--accent); 
+            color: #0f172a; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 1.1em; 
+            font-weight: 700; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn-vote { background: #334155; color: white; margin-bottom: 10px; text-align: left; padding-left: 20px; }
+        .btn-vote:hover { background: #475569; border-left: 4px solid var(--accent); }
+
+        /* --- Player Chips --- */
+        .player-grid { 
             display: flex; 
             flex-wrap: wrap; 
             justify-content: center; 
             gap: 10px; 
-            max-width: 540px; 
-            margin: 0 auto 20px auto; 
+            max-width: 600px; 
+            margin-bottom: 20px;
         }
         .player-chip {
-            background: rgba(255,255,255,0.1);
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.9em;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.85em;
             display: flex;
             align-items: center;
-            border: 1px solid rgba(255,255,255,0.1);
             transition: 0.3s;
+            color: var(--text-muted);
         }
-        .player-chip.is-me { border-color: #f1c40f; background: rgba(241, 196, 15, 0.2); }
-        .player-chip.is-ready { border-color: #2ecc71; background: rgba(46, 204, 113, 0.2); }
-        .score-pill { 
-            background: rgba(0,0,0,0.3); 
-            padding: 2px 6px; 
-            border-radius: 10px; 
-            margin-left: 8px; 
-            font-size: 0.8em; 
-        }
-        .status-icon { margin-left: 5px; font-size: 0.8em; }
+        .player-chip.is-ready { border-color: var(--success); color: white; background: rgba(34, 197, 94, 0.1); }
+        .player-chip.is-me { border-color: var(--gold); background: rgba(245, 158, 11, 0.1); color: var(--gold); }
+        .avatar-small { width: 20px; height: 20px; border-radius: 50%; margin-right: 8px; border: 1px solid rgba(255,255,255,0.2); }
+        .score-tag { background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; margin-left: 8px; font-size: 0.85em; }
 
-        .wait-box { padding: 30px; background: #eef2f3; color: #7f8c8d; border-radius: 10px; border: 2px dashed #bdc3c7; }
-        .msg-box { padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
-        .msg-error { background: #e74c3c; color: white; }
-        .msg-warning { background: #f39c12; color: white; }
-        .big-score { font-size: 2em; color: #f1c40f; text-shadow: 1px 1px 0 #000; margin: 10px 0; }
-        
-        .score-board { font-size: 1.2em; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 20px; display: inline-block; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.2); }
-        .wait-box { padding: 30px; background: #eef2f3; color: #7f8c8d; border-radius: 10px; border: 2px dashed #bdc3c7; }
-        .msg-box { padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
-        .msg-error { background: #e74c3c; color: white; }
-        .msg-warning { background: #f39c12; color: white; }
-        
-        /* New Result Styles */
-        .big-score { font-size: 2em; color: #f1c40f; text-shadow: 1px 1px 0 #000; margin: 10px 0; }
-
-        .avatar-img {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 8px;
-            border: 1px solid rgba(255,255,255,0.3);
-            object-fit: cover; /* Prevents stretching */
-            background: url('https://i.gifer.com/ZKZg.gif') center/contain no-repeat;
+        /* --- Waiting State --- */
+        .wait-state { 
+            padding: 40px 20px; 
+            color: var(--text-muted); 
+            border: 2px dashed rgba(255,255,255,0.1); 
+            border-radius: 16px;
         }
 
-        .profile-section {
+        /* --- Results Section --- */
+        .result-item { 
+            background: rgba(0,0,0,0.2); 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 10px; 
+            text-align: left;
+            border-left: 4px solid transparent;
+        }
+        .result-real { border-left-color: var(--success); background: rgba(34, 197, 94, 0.1); }
+        .result-bluff { border-left-color: var(--danger); }
+        .voter-list { font-size: 0.8em; color: var(--text-muted); margin-top: 5px; display: block;}
+
+        /* --- Profile Toggle --- */
+        details.profile-toggle {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
             margin-top: 30px;
+        }
+        details.profile-toggle summary {
             padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
-        .profile-section input {
-            background: #34495e;
-            border: 1px solid #455a64;
-            color: white;
-            padding: 8px;
-            border-radius: 5px;
-            width: 60%;
-        }
-
+        details.profile-toggle summary:hover { color: white; background: rgba(255,255,255,0.05); }
+        .profile-content { padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
 
     </style>
 </head>
 <body>
 
-    <div class="header-stats">
-    <div class="round-badge">🔄 Round: {{ round_num }}/20</div>
+    <div class="top-bar">
+            <form action="{% url 'leave_room' %}" method="POST" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="nav-btn" style="border: none; cursor: pointer;">
+            ⬅ Exit Game
+        </button>
+        </form>
+    
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; transform: translateY(-5px);">
+        <div onclick="copyCode('{{ game.room_code }}')" 
+             style="cursor: pointer; background: rgba(0,0,0,0.4); padding: 8px 20px; border-radius: 50px; border: 1px solid var(--gold); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); transition: all 0.2s;"
+             id="code-capsule">
+            <span style="font-size: 0.6em; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); display: block; line-height: 1;">Room Code</span>
+            <span style="font-family: 'Courier New', monospace; font-size: 1.3em; font-weight: 900; color: var(--gold); letter-spacing: 3px;" id="display-code">{{ game.room_code }}</span>
+        </div>
+
+         <div class="round-badge" style="font-size: 0.75em; padding: 4px 12px;">
+            Round {{ round_num }} / {{ max_rounds }}
+        </div>
     </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <a href="{% url 'home' %}" style="text-decoration: none; background: rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 5px; font-size: 0.9em;">
-            🏠 Home
-        </a>
-
-        <a href="{% url 'kalak_config' %}" style="text-decoration: none; background: #34495e; color: #f1c40f; border: 1px solid #f1c40f; padding: 8px 15px; border-radius: 5px; font-size: 0.9em; font-weight: bold;">
-            ⚙️ Config
-        </a>
-    </div>
-
-
-
-    <div class="player-list">
-    {% for player_score in leaderboard %}
-        <div class="player-chip 
-            {% if player_score.user == request.user %}is-me{% endif %}
-            {% if player_score.user.id in ready_player_ids and game.kalak_phase != 'RESULTS' %}is-ready{% endif %}
-        ">
-            {% if player_score.avatar_url %}
-                <img src="{{ player_score.avatar_url }}" class="avatar-img" alt="avatar">
-            {% else %}
-                <span style="margin-right: 5px;">👤</span> {% endif %}
-
-            {{ player_score.user.username|truncatechars:10 }}
             
-            <span class="score-pill">{{ player_score.points }} pts</span>
+        {% if request.user.is_staff %}
+            <a href="{% url 'kalak_config' %}" class="nav-btn admin-btn">⚙️ Config</a>
+        {% else %}
+            <div style="width: 60px;"></div> {% endif %}
+    </div>
 
+    <div class="player-grid">
+        {% for player_score in leaderboard %}
+        <div class="player-chip {% if player_score.user == request.user %}is-me{% endif %} {% if player_score.user.id in ready_player_ids and game.kalak_phase != 'RESULTS' %}is-ready{% endif %}">
+            
+            <img src="{{ player_score.user.profile.avatar_url }}" class="avatar-small">
+            
+            {{ player_score.user.username|truncatechars:10 }}
+            <span class="score-tag">{{ player_score.points }}</span>
+            
             {% if game.kalak_phase != 'RESULTS' and game.kalak_phase != 'GAME_OVER' %}
-                {% if player_score.user.id in ready_player_ids %}
-                    <span class="status-icon">✅</span>
-                {% else %}
-                    <span class="status-icon">⏳</span>
-                {% endif %}
+                {% if player_score.user.id in ready_player_ids %}✅{% endif %}
             {% endif %}
         </div>
-    {% endfor %}
+        {% endfor %}
     </div>
 
-    <div class="card animate__animated animate__fadeInUp">
-
+    <div class="game-card animate__animated animate__fadeInUp">
+        
         {% if messages %}
             {% for message in messages %}
-                <div class="msg-box {% if message.tags %}msg-{{ message.tags }}{% endif %} animate__animated animate__shakeX">
-                    {{ message }}
-                </div>
+            <div style="background: #ef4444; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold;" class="animate__animated animate__headShake">
+                {{ message }}
+            </div>
             {% endfor %}
         {% endif %}
 
-
         {% if not game.is_active and game.kalak_phase != 'GAME_OVER' %}
-            <h2>🎭 Kalak Game</h2>
-            <p style="color:#7f8c8d; font-size:0.9em; margin-bottom:20px;">
-                Invent fake answers. Fool your friends. Win points.<br>
+            
+            <h1 style="font-size: 3em; margin: 0;">🎭</h1>
+            <h2>Welcome to Kalak</h2>
+            <p style="color: var(--text-muted);">
+                Invent fake answers. Fool your friends. <br>
                 <strong>First to 20 rounds wins!</strong>
             </p>
             <form action="{% url 'start_kalak' %}" method="POST">
@@ -156,59 +261,58 @@
                 <button type="submit" class="btn">🚀 Start First Round</button>
             </form>
 
-
         {% elif game.kalak_phase == 'GAME_OVER' %}
-            <h1 style="color:#2ecc71;">🏆 GAME OVER!</h1>
-            <div class="big-score">{{ my_score }} pts</div>
-            <p>Final Score</p>
+
+            <h1 style="color: var(--gold);">🏆 GAME OVER</h1>
+            <div style="font-size: 4em; font-weight: 800; color: white; text-shadow: 0 0 20px rgba(255,255,255,0.5);">
+                {{ my_score }} pts
+            </div>
+            <p style="color: var(--text-muted);">Final Score</p>
             
             <form action="{% url 'switch_game' %}" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="game_type" value="KALAK">
-                <button class="btn" style="background: #27ae60;">🔄 Play Again (Reset Scores)</button>
+                <button class="btn" style="background: var(--success); color: white;">🔄 Play Again</button>
             </form>
-
 
         {% else %}
 
             {% if game.kalak_phase == 'WRITING' %}
-
-                {% if game.kalak_image_url %}
-                <div style="margin: 15px 0;">
-                    <img src="{{ game.kalak_image_url }}" 
-                        style="max-width: 100%; border-radius: 10px; border: 2px solid #f1c40f; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                </div>
+                
+                {% if game.kalak_image_url and game.kalak_image_url != '_' %}
+                    <img src="{{ game.kalak_image_url }}" style="max-width: 100%; border-radius: 12px; margin-bottom: 15px; border: 2px solid var(--accent);">
                 {% endif %}
 
-                <div class="question">{{ game.kalak_question }}</div>
+                <div class="question-box">{{ game.kalak_question }}</div>
 
                 {% if has_acted %}
-                    <div class="wait-box">
-                        <h3>✅ Lie Submitted!</h3>
-                        <p>You wrote: <strong>{{ my_bluff.text }}</strong></p>
-                        <p class="animate__animated animate__pulse animate__infinite">Waiting for others...</p>
+                    <div class="wait-state">
+                        <h3>✅ Answer Submitted</h3>
+                        <p>You wrote: <strong style="color: var(--accent);">{{ my_bluff.text }}</strong></p>
+                        <div class="animate__animated animate__pulse animate__infinite" style="margin-top: 15px; font-size: 0.9em;">
+                            Waiting for other players...
+                        </div>
                     </div>
                 {% else %}
                     <form action="{% url 'submit_bluff' %}" method="POST">
                         {% csrf_token %}
-                        <p>Invent a Fake Answer!</p>
-                        <input type="text" name="bluff_text" class="input-box" placeholder="Your lie here..." required autocomplete="off" autofocus>
+                        <p style="color: var(--text-muted); margin-bottom: 10px;">Invent a convincing lie:</p>
+                        <input type="text" name="bluff_text" class="input-box" placeholder="Type your lie here..." required autocomplete="off" autofocus>
                         <button type="submit" class="btn">Submit Lie 🤥</button>
                     </form>
                 {% endif %}
-            {% endif %}
 
-
-            {% if game.kalak_phase == 'VOTING' %}
-                <div class="question">{{ game.kalak_question }}</div>
-
+            {% elif game.kalak_phase == 'VOTING' %}
+                
+                <div class="question-box" style="font-size: 1.1em; opacity: 0.8;">{{ game.kalak_question }}</div>
+                
                 {% if has_acted %}
-                    <div class="wait-box">
-                        <h3>🗳️ Vote Locked In!</h3>
-                        <p class="animate__animated animate__pulse animate__infinite">Waiting for others to vote...</p>
+                    <div class="wait-state">
+                        <h3>🗳️ Vote Locked</h3>
+                        <p class="animate__animated animate__pulse animate__infinite">Waiting for others...</p>
                     </div>
                 {% else %}
-                    <p>Pick the REAL answer:</p>
+                    <h3 style="color: var(--accent);">Find the Real Answer!</h3>
                     {% for opt in options %}
                         <form action="{% url 'vote_kalak' %}" method="POST">
                             {% csrf_token %}
@@ -216,122 +320,185 @@
                             {% if opt.text != my_bluff.text %}
                                 <button type="submit" class="btn btn-vote">{{ opt.text }}</button>
                             {% else %}
-                                <button disabled class="btn" style="background:#bdc3c7; cursor:not-allowed; opacity: 0.7;">
+                                <button disabled class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-muted); cursor: not-allowed;">
                                     {{ opt.text }} (Your Lie)
                                 </button>
                             {% endif %}
                         </form>
                     {% endfor %}
                 {% endif %}
-            {% endif %}
 
-
-            {% if game.kalak_phase == 'RESULTS' %}
-                <h2>📊 Results</h2>
+            {% elif game.kalak_phase == 'RESULTS' %}
                 
-                <div style="background: #34495e; color: #f1c40f; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                    <div>Your Total Score:</div>
-                    <div class="big-score">{{ my_score }}</div>
+                <h2>📊 Round Results</h2>
+                
+                <div class="result-item result-real">
+                    <span style="font-size: 1.1em;">✅ <strong>{{ game.kalak_real_answer }}</strong></span>
+                    <span style="display:block; font-size:0.8em; opacity:0.7;">The Truth</span>
                 </div>
 
-                <div style="text-align:left; margin-bottom: 20px;">
-                    <div style="background: #2ecc71; color:white; padding:15px; border-radius:8px; margin-bottom:15px;">
-                        ✅ Real Answer: <strong>{{ game.kalak_real_answer }}</strong>
-                    </div>
-
-                    {% if all_bluffs %}
-                        {% for bluff in all_bluffs %}
-                            <div style="border-bottom:1px solid #eee; padding:10px 5px;">
-                                <span style="font-size:1.1em;">🤥 <strong>{{ bluff.text }}</strong></span>
-                                <br>
-
-                                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
-                                    {% if bluff.player.playerscore.avatar_url %}
-                                        <img src="{{ bluff.player.playerscore.avatar_url }}" class="avatar-img" style="width: 18px; height: 18px; margin-right: 0;">
-                                    {% endif %}
-                                    <span style="font-size:0.8em; color:#7f8c8d;">by {{ bluff.player.username }}</span>
+                {% if all_bluffs %}
+                    {% for bluff in all_bluffs %}
+                        <div class="result-item result-bluff">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:600;">{{ bluff.text }}</span>
+                                <div style="display:flex; align-items:center; font-size:0.8em; opacity:0.8;">
+                                    <img src="{{ bluff.player.playerscore.avatar_url }}" style="width:16px; height:16px; border-radius:50%; margin-right:5px;">
+                                    {{ bluff.player.username }}
                                 </div>
-                                
-                                {% if bluff.voters.all %}
-                                    <div style="margin-top:5px; background:#ffecec; color:#c0392b; padding:5px; border-radius:5px; font-size:0.9em;">
-                                        Fooled: <strong>{% for v in bluff.voters.all %}{{ v.username }}, {% endfor %}</strong>
-                                    </div>
-                                {% endif %}
                             </div>
-                        {% endfor %}
-                    {% else %}
-                        <p style="color:#7f8c8d; font-style:italic;">No bluffs submitted.</p>
-                    {% endif %}
-                </div>
+                            
+                            {% if bluff.voters.all %}
+                                <span class="voter-list">
+                                    Fooled: 
+                                    {% for v in bluff.voters.all %}
+                                        <b style="color:white;">{{ v.username }}</b>{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
 
-                <form action="{% url 'start_kalak' %}" method="POST">
+                <form action="{% url 'start_kalak' %}" method="POST" style="margin-top: 25px;">
                     {% csrf_token %}
-                    <button type="submit" class="btn">Next Question ➡️</button>
+                    <button type="submit" class="btn">Next Round ➡️</button>
                 </form>
+
             {% endif %}
 
-        {% endif %} 
+        {% endif %}
     </div>
 
-    <div class="profile-section" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; margin-top: 40px;">
-    <h3 style="margin-top:0; color: #f1c40f;">🎭 Character Settings</h3>
-    
-    
+    <details class="profile-toggle">
+        <summary>✏️ Customize Your Avatar</summary>
+        <div class="profile-content">
+            <form action="{% url 'update_avatar' %}" method="POST">
+                {% csrf_token %}
+                
+                <div style="display:flex; align-items:center; justify-content:center; gap:15px; margin-bottom:15px;">
+                    <img src="{{ request.user.playerscore.avatar_url }}" style="width:60px; height:60px; border-radius:50%; border: 2px solid var(--accent);">
+                    <input type="text" name="new_desc" class="input-box" style="padding:10px; font-size:0.9em;" placeholder="e.g. Cyber Samurai" required>
+                </div>
 
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                    <label class="nav-btn" style="cursor: pointer;">
+                        <input type="radio" name="method" value="dicebear" checked onclick="document.getElementById('style-select').style.display='block'"> 
+                        ⚡ Instant
+                    </label>
+                    <label class="nav-btn" style="cursor: pointer;">
+                        <input type="radio" name="method" value="ai" onclick="document.getElementById('style-select').style.display='none'"> 
+                        ✨ AI Gen
+                    </label>
+                </div>
 
-    <form action="{% url 'update_avatar' %}" method="POST">
-        {% csrf_token %}
-        
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: center; margin-bottom: 20px;">
-            <img src="{{ request.user.playerscore.avatar_url }}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #e67e22; background: #2c3e50;">
-            <div style="text-align: left;">
-                <label style="font-size: 0.8em; color: #bdc3c7;">Avatar Name/Description:</label><br>
-                <input type="text" name="new_desc" class="input-box" style="width: 200px; padding: 8px; margin-top:5px;" placeholder="e.g. Shadow Ninja" required>
-            </div>
+                <div id="style-select" style="margin-bottom: 15px;">
+                    <select name="style" class="input-box" style="padding: 10px;">
+                        <option value="pixel-art">👾 Pixel</option>
+                        <option value="bottts">🤖 Robots</option>
+                        <option value="avataaars">😎 Human</option>
+                        <option value="lorelei">🌸 Anime</option>
+                        <option value="identicon">🔷 Shapes</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" style="padding: 12px; font-size: 1em;">Update Profile</button>
+            </form>
         </div>
+    </details>
 
-        <div style="margin-bottom: 15px; display: flex; justify-content: center; gap: 15px; font-size: 0.9em;">
-            <label>
-                    <input type="radio" name="method" value="dicebear" checked onclick="document.getElementById('style-select').style.display='inline-block'"> 
-                    ⚡ Instant (DiceBear)
-                </label>
-                <label title="Takes 3-5 seconds to generate">
-                    <input type="radio" name="method" value="ai" onclick="document.getElementById('style-select').style.display='none'"> 
-                    ✨ AI Art (Beta)
-                </label>
-            </div>
-
-            <div id="style-select" style="margin-bottom: 15px;">
-                <label style="font-size: 0.8em; color: #bdc3c7;">Choose Style:</label>
-                <select name="style" style="padding: 5px; border-radius: 5px; background: #34495e; color: white; border: 1px solid #455a64;">
-                    <option value="pixel-art">Retro Pixel</option>
-                    <option value="bottts">Robots</option>
-                    <option value="avataaars">Human</option>
-                    <option value="lorelei">Anime</option>
-                    <option value="identicon">Geometric</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn" style="width: auto; padding: 10px 30px; margin-top: 5px;">Save New Look</button>
-        </form>
-    </div>
-
-
-    <form action="{% url 'switch_game' %}" method="POST" style="margin-top: 50px;">
+    <form action="{% url 'switch_game' %}" method="POST" style="margin-top: 30px; opacity: 0.5; transition: opacity 0.3s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
         {% csrf_token %}
         <input type="hidden" name="game_type" value="SPY">
-        <button style="background: #34495e; color: #bdc3c7; padding: 8px 15px; border:none; border-radius: 5px; cursor:pointer;">
-            ⬅️ Quit to Spy Game
-        </button>
+        <button style="background: none; border: none; color: var(--text-muted); cursor: pointer;">⬅ Quit to Spy Mode</button>
     </form>
 
     <script>
-        let localTimestamp = "{{ game.updated_at|date:'c' }}";
-        setInterval(() => {
-            fetch("{% url 'game_status' %}")
-                .then(r => r.json())
-                .then(d => { if(d.last_updated !== localTimestamp) window.location.reload(); });
-        }, 2000);
+       let localTimestamp = "{{ game.updated_at|date:'c' }}";
+        let currentPhase = "{{ game.kalak_phase }}";
+        const roomCode = "{{ game.room_code }}";
+
+        async function syncGame() {
+            try {
+                const response = await fetch(`/api/game-status/${roomCode}/`);
+                const data = await response.json();
+
+                // 1. If the PHASE changed, we MUST reload the whole page to get the new forms
+                if (data.phase !== currentPhase) {
+                    window.location.reload();
+                    return;
+                }
+
+                // 2. If phase is the same but timestamp changed, update the Leaderboard silently
+                if (data.last_updated !== localTimestamp) {
+                    localTimestamp = data.last_updated;
+                    updateLeaderboardUI(data.leaderboard);
+                }
+            } catch (err) {
+                console.warn("Retrying connection...");
+            }
+        }
+
+        function updateLeaderboardUI(players) {
+            const grid = document.querySelector('.player-grid');
+            if (!grid) return;
+
+            // Generate new HTML for all player chips
+            const newHtml = players.map(p => `
+                <div class="player-chip ${p.is_me ? 'is-me' : ''} ${p.is_ready ? 'is-ready' : ''}">
+                    <img src="${p.avatar}" class="avatar-small">
+                    ${p.username.substring(0, 10)}
+                    <span class="score-tag">${p.points}</span>
+                    ${p.is_ready ? '✅' : ''}
+                </div>
+            `).join('');
+
+            grid.innerHTML = newHtml;
+        }
+
+        // Check every 2 seconds
+        setInterval(syncGame, 2000);
+
+        document.addEventListener('submit', async (e) => {
+        // Check if it's the bluff submission form
+        if (e.target.action.includes('submit-bluff')) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            await fetch(e.target.action, {
+                method: 'POST',
+                body: formData,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            
+            // Manually update the UI to show "Waiting" state
+            document.querySelector('.game-card').innerHTML = `
+                <div class="wait-state">
+                    <h3>✅ Answer Submitted</h3>
+                    <p>Waiting for other players...</p>
+                </div>
+            `;
+        }
+    });
+    
+        function copyCode(code) {
+            navigator.clipboard.writeText(code);
+            const capsule = document.getElementById('code-capsule');
+            const span = document.getElementById('display-code');
+            const original = span.innerText;
+            
+            capsule.style.background = "rgba(34, 197, 94, 0.2)";
+            capsule.style.borderColor = "var(--success)";
+            span.innerText = "COPIED";
+            
+            setTimeout(() => { 
+                capsule.style.background = "rgba(0,0,0,0.4)";
+                capsule.style.borderColor = "var(--gold)";
+                span.innerText = original; 
+            }, 1000);
+        }
+
     </script>
+
 </body>
 </html>

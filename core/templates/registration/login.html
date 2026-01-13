@@ -1,20 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <title>Login | Knidlagame</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        input { display: block; margin: 10px auto; padding: 10px; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; }
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: 1px solid rgba(255, 255, 255, 0.1);
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg-gradient); 
+            color: var(--text-main); 
+            margin: 0; 
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            border: var(--card-border); 
+            padding: 40px; 
+            border-radius: 24px; 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+            color: white;
+        }
+
+        .brand {
+            color: var(--accent);
+            font-weight: 800;
+            text-transform: lowercase;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        /* --- Form Styling --- */
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 14px; 
+            font-size: 1em; 
+            background: rgba(0,0,0,0.3); 
+            border: 2px solid rgba(255,255,255,0.1); 
+            border-radius: 12px; 
+            color: white; 
+            outline: none; 
+            transition: 0.3s;
+        }
+
+        input:focus { 
+            border-color: var(--accent); 
+            background: rgba(0,0,0,0.5); 
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+        }
+
+        .btn { 
+            display: block; 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--accent); 
+            color: #0f172a; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 1.1em; 
+            font-weight: 700; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+
+        .footer-link {
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        .errorlist {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 10px;
+            border-radius: 8px;
+            list-style: none;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-    <h2>Login to Play</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Login</button>
-    </form>
+
+    <div class="login-card animate__animated animate__zoomIn">
+        <h2>login to <span class="brand">knidlagame</span></h2>
+        <p class="subtitle">Enter your details to join the room</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" required placeholder="your username">
+                {% if form.username.errors %}<div style="color:var(--danger); font-size:0.8em; margin-top:5px;">{{ form.username.errors }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" required placeholder="••••••••">
+                {% if form.password.errors %}<div style="color:var(--danger); font-size:0.8em; margin-top:5px;">{{ form.password.errors }}</div>{% endif %}
+            </div>
+
+            <button type="submit" class="btn">Login 🚀</button>
+        </form>
+
+        <div class="footer-link">
+            Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>
+        </div>
+    </div>
+
 </body>
 </html>
